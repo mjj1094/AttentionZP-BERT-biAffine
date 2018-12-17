@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="PublishConfigData" autoUpload="Always" serverName="miaojingjing@202.112.195.34:22">
+    <serverData>
+      <paths name="miaojingjing@202.112.195.30:22">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/home/miaojingjing/project/AttentionZP-BERT" local="$PROJECT_DIR$" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="miaojingjing@202.112.195.34:22">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/home/miaojingjing/project/AttentionZP-BERT-62" local="$PROJECT_DIR$" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="miaojingjing@222.28.84.9:22">
+        <serverdata>
+          <mappings>
+            <mapping local="$PROJECT_DIR$" web="/" />
+          </mappings>
+        </serverdata>
+      </paths>
+      <paths name="mjj@202.112.194.62:22">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/home/mjj/project/AttentionZP-BERT-62" local="$PROJECT_DIR$" />
+          </mappings>
+        </serverdata>
+      </paths>
+    </serverData>
+    <option name="myAutoUpload" value="ALWAYS" />
+  </component>
+</project>
