@@ -121,7 +121,7 @@ def main():
 
     print("Building torch model")
     # model = Network.from_pretrained('/home/miaojingjing/data/chinese_L-12_H-768_A-12/',PYTORCH_PRETRAINED_BERT_CACHE / 'distributed_{}'.format(args.local_rank),nnargs["embedding_size"], nnargs["embedding_dimention"], embedding_matrix,nnargs["hidden_dimention"], 2, nnargs["attention"]).cuda()
-    model = Network.from_pretrained('/home/miaojingjing/data/chinese_L-12_H-768_A-12/',PYTORCH_PRETRAINED_BERT_CACHE / 'distributed_{}'.format(args.local_rank),nnargs["hidden_dimention"], 2)
+    model = Network.from_pretrained(args.bert_dir,PYTORCH_PRETRAINED_BERT_CACHE / 'distributed_{}'.format(args.local_rank),nnargs["hidden_dimention"], 2)
 
 
 
@@ -129,7 +129,7 @@ def main():
     best_result["hits"] = 0
     # best_model = Network.from_pretrained('/home/miaojingjing/data/chinese_L-12_H-768_A-12/',PYTORCH_PRETRAINED_BERT_CACHE / 'distributed_{}'.format(args.local_rank), nnargs["embedding_size"], nnargs["embedding_dimention"],
     #                                      embedding_matrix, nnargs["hidden_dimention"], 2, nnargs["attention"]).cuda()
-    best_model = Network.from_pretrained('/home/miaojingjing/data/chinese_L-12_H-768_A-12/',
+    best_model = Network.from_pretrained(args.bert_dir,
                                          PYTORCH_PRETRAINED_BERT_CACHE / 'distributed_{}'.format(args.local_rank),
                                          nnargs["hidden_dimention"], 2)
 
