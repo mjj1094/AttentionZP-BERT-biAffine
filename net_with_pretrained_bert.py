@@ -30,7 +30,7 @@ import torch.autograd as autograd
 import torchvision.transforms as T
 import torch.optim as optim
 from conf import *
-
+from BiAffine.attention import BiAAttention
 """PyTorch BERT model."""
 import os
 import copy
@@ -786,11 +786,7 @@ class Network(PreTrainedBertModel):
         self.bert = BertModel(config)
         self.cls = BertOnlyMLMHead(config, self.bert.embeddings.word_embeddings.weight)
         self.apply(self.init_bert_weights)
-        # self.embedding_layer = nn.Embedding(embedding_size, embedding_dimention)
-        # self.embedding_layer.weight.data.copy_(torch.from_numpy(numpy.array(embedding_matrix)))
 
-        # self.inpt_layer_np = nn.Linear(embedding_dimention,hidden_dimention)
-        # self.inpt_layer_np_bert = nn.Linear(config.hidden_size, hidden_dimention)
         self.inpt_layer_np_bert = nn.Linear(hidden_dimention, hidden_dimention)
         self.hidden_layer_np = nn.Linear(hidden_dimention,hidden_dimention)
         nh = hidden_dimention*2
@@ -801,12 +797,13 @@ class Network(PreTrainedBertModel):
         self.nps_representation_layer = nn.Linear(hidden_dimention,nh)
         self.feature_representation_layer = nn.Linear(nnargs["feature_dimention"],nh)
         self.representation_hidden_layer = nn.Linear(hidden_dimention*2,hidden_dimention*2)
-        self.output_layer = nn.Linear(hidden_dimention*2,output_dimention)
+        self.output_layer = nn.Linear(nh,output_dimention)
         self.hidden_size = hidden_dimention
         self.activate = nn.Tanh()
 
-        self.Attention_np = nn.Linear(256,1,bias=False)
+        self.Attention_np = nn.Linear(hidden_dimention,1,bias=False)
         self.Attention_zp = nn.Linear(nh,1,bias=False)
+        self.attention = BiAAttention(hidden_dimention, nh, 2)
     def forward_zp_pre(self, word_index, hiden_layer,dropout=0.0):
         dropout_layer = nn.Dropout(dropout)
         word_embedding = self.embedding_layer(word_index)#.view(-1,word_embedding_rep_dimention)
@@ -860,6 +857,24 @@ class Network(PreTrainedBertModel):
         x = self.output_layer(x)
         xs = F.softmax(x,dim=0)
         return x,xs
+    def generate_score_bert_biaffine(self,zp,np,feature,dropout=0.0):
+        # dropout_layer = nn.Dropout(dropout)
+        # x = self.zp_representation_layer(zp) + self.np_representation_layer(np)\
+        #     + self.feature_representation_layer(feature)
+        # x = self.activate(x)
+        # x = dropout_layer(x)
+        # x = self.representation_hidden_layer(x)
+        # x = self.activate(x)
+        # x = dropout_layer(x)
+
+        # dropout_layer = nn.Dropout(dropout)
+        x = self.zp_representation_layer(zp) + self.feature_representation_layer(feature)
+        x = self.activate(x)
+        x = self.attention(np.unsqueeze(1),x.unsqueeze(1)).squeeze(dim=2).squeeze(dim=2)#[batch, length_decoder, input_size]
+        #  output shape [batch, num_label, length_decoder, length_encoder]
+        # x = self.output_layer(x)
+        xs = F.softmax(x,dim=1)
+        return x,xs
     def initHidden(self,batch=1):
         return torch.tensor(numpy.zeros((batch, self.hidden_size))).type(torch.cuda.FloatTensor)
     def get_attention_pre(self,inpt):
@@ -869,34 +884,6 @@ class Network(PreTrainedBertModel):
     def forward(self,data,dropout=0.0,  attention_mask=None, masked_lm_labels=None):
         # token_type_ids = None#----------
         zp_reindex = torch.tensor(data["zp_reindex"]).type(torch.cuda.LongTensor)
-        # zps_sent_bert = []
-        # zp_i = 0
-        # for i, zp_reidx in enumerate(zp_reindex):
-        #     if zp_i != zp_reidx:
-        #         zp_i += 1
-        #     zps_sent_bert.append(data["zp_sent_bert"][zp_i])
-        #
-        # zps_sent_mask_bert = []
-        # zp_i = 0
-        # for i, zp_reidx in enumerate(zp_reindex):
-        #     if zp_i != zp_reidx:
-        #         zp_i += 1
-        #     zps_sent_mask_bert.append(data["zp_sent_mask_bert"][zp_i])
-        #
-        # # zp_sent_bert = torch.tensor(data["zp_sent_bert"]).type(torch.cuda.LongTensor)
-        # # zp_sent_mask_bert = torch.tensor(data["zp_sent_mask_bert"]).type(torch.cuda.FloatTensor)
-        # zp_sent_bert = torch.tensor(zps_sent_bert).type(torch.cuda.LongTensor)
-        # zp_sent_mask_bert = torch.tensor(zps_sent_mask_bert).type(torch.cuda.FloatTensor)
-        #
-        # # zp_orig_to_tok_bert = torch.tensor(data["zp_orig_to_tok_bert"]).type(torch.cuda.LongTensor)
-        # #input_ids
-        # sequence_output, _ = self.bert(zp_sent_bert, token_type_ids, zp_sent_mask_bert,output_all_encoded_layers=False)
-        #
-        # # for sent in zp_orig_to_tok_bert:
-        # #     for i,ci in enumerate(sent):
-        #
-        # zp_representation = self.zp_bert_to_att_layer(torch.squeeze(sequence_output.narrow(1,0,1),1))
-
         zps_sent_cls_output_bert = []
         zp_i = 0
         for i, zp_reidx in enumerate(zp_reindex):
@@ -905,25 +892,25 @@ class Network(PreTrainedBertModel):
             zps_sent_cls_output_bert.append(data["zp_sent_cls_output_bert"][zp_i])
         zp_representation = torch.tensor(zps_sent_cls_output_bert).type(torch.cuda.FloatTensor)[:,:512]#x*768->x*512
 
-        candi_reindex = torch.tensor(data["candi_reindex"]).type(torch.cuda.LongTensor)
+        candi_reindex = torch.tensor(data["candi_reindex"]).type(torch.cuda.LongTensor)#x
         # candi = torch.tensor(data["candi"]).type(torch.cuda.LongTensor)
         # candi_mask = torch.tensor(data["candi_mask"]).type(torch.cuda.FloatTensor)
         candi_bert = torch.tensor(data["candi_bert"]).type(torch.cuda.FloatTensor)[:,:,:256]#x*40*768->x*40*256
-        candi_mask_bert = torch.tensor(data["candi_mask_bert"]).type(torch.cuda.FloatTensor)#why not LongTensor
+        # candi_mask_bert = torch.tensor(data["candi_mask_bert"]).type(torch.cuda.LongTensor)#why not LongTensor
         feature = torch.tensor(data["fl"]).type(torch.cuda.FloatTensor)
         candi_bert = torch.transpose(candi_bert,0,1)#40*x*256
-        mask_candi_bert = torch.transpose(candi_mask_bert,0,1)
-        hidden_candi = self.initHidden()
-        hiddens_candi = []
-        for i in range(len(mask_candi_bert)):#40
-            #hidden_candi = self.forward_np_bert(candi_bert[i], hidden_candi, dropout=dropout) * torch.transpose(mask_candi_bert[i:i + 1], 0, 1)#RNN
-            hidden_candi = candi_bert[i]#choose the max
-            hiddens_candi.append(hidden_candi)
-        hiddens_candi = torch.cat(hiddens_candi,1)
-        hiddens_candi = hiddens_candi.view(-1,len(mask_candi_bert),nnargs["hidden_dimention"])
+        # mask_candi_bert = torch.transpose(candi_mask_bert,0,1)
+        # hidden_candi = self.initHidden()
+        # hiddens_candi = []
+        # for i in range(len(mask_candi_bert)):#40
+        #     #hidden_candi = self.forward_np_bert(candi_bert[i], hidden_candi, dropout=dropout) * torch.transpose(mask_candi_bert[i:i + 1], 0, 1)#RNN
+        #     hidden_candi = candi_bert[i]#choose the max
+        #     hiddens_candi.append(hidden_candi)
+        # hiddens_candi = torch.cat(hiddens_candi,1)
+        # hiddens_candi = hiddens_candi.view(-1,len(mask_candi_bert),nnargs["hidden_dimention"])
         nps = []
-        for npt, zpt in zip(hiddens_candi, zp_representation):  # 5*40*256
-        # for npt, zpt in zip(candi_bert, zp_representation):#5*40*256,5*512
+        for npt, zpt in zip(torch.transpose(candi_bert,0,1), zp_representation):  # x*40*256,x*512
+        # for npt, zpt in zip(candi_bert, zp_representation):#x*40*256,x*512
             attention = F.softmax(torch.squeeze(self.activate(self.Attention_np(npt) + self.Attention_zp(zpt))),dim=0)
             #[8*256]*[256*1]+[1*256]*[256*1]+[1*256]*[256*1]=[8*1]+[1*1]+[1*1]=[8*1]-->[8]
             average_np = torch.transpose(npt,0,1)*attention
@@ -932,6 +919,7 @@ class Network(PreTrainedBertModel):
         nps = torch.transpose(torch.cat(nps,1),0,1)
         candi_representation = nps[candi_reindex]
 
-        output, softmax_out = self.generate_score_bert(zp_representation, candi_representation,feature)
+        # output, softmax_out = self.generate_score_bert(zp_representation, candi_representation,feature)
+        output, softmax_out = self.generate_score_bert_biaffine(zp_representation, candi_representation, feature)
         output = torch.squeeze(output)
         return output,softmax_out

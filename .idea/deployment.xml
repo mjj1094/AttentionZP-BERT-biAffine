@@ -12,7 +12,7 @@
       <paths name="miaojingjing@202.112.195.34:22">
         <serverdata>
           <mappings>
-            <mapping deploy="/home/miaojingjing/project/AttentionZP-BERT-62" local="$PROJECT_DIR$" />
+            <mapping deploy="/home/miaojingjing/project/AttentionZP-BERT-biAffine" local="$PROJECT_DIR$" />
           </mappings>
         </serverdata>
       </paths>
