@@ -750,7 +750,7 @@ def generate_vec_bert(data_path,batch_size):
     numpy.save(data_path + "zp_sent_cls_output_bert.npy", zp_sent_cls_output_bert)
     candi_vecs_bert = numpy.array(candi_vecs_bert,dtype='float')
     numpy.save(data_path+"candi_vec_bert.npy",candi_vecs_bert)
-    candi_vecs_mask_bert = numpy.array(candi_vecs_mask_bert,dtype='float')
+    candi_vecs_mask_bert = numpy.array(candi_vecs_mask_bert,dtype='int32')
     numpy.save(data_path+"candi_vec_mask_bert.npy",candi_vecs_mask_bert)
 
 

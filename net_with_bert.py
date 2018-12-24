@@ -30,7 +30,7 @@ import torch.autograd as autograd
 import torchvision.transforms as T
 import torch.optim as optim
 from conf import *
-
+from BiAffine.attention import BiAAttention
 """PyTorch BERT model."""
 import os
 import copy
@@ -787,25 +787,43 @@ class Network(PreTrainedBertModel):
         self.bert = BertModel(config)
         self.cls = BertOnlyMLMHead(config, self.bert.embeddings.word_embeddings.weight)
         self.apply(self.init_bert_weights)
-        self.embedding_layer = nn.Embedding(embedding_size, embedding_dimention)
-        self.embedding_layer.weight.data.copy_(torch.from_numpy(numpy.array(embedding_matrix)))
 
-        self.inpt_layer_np = nn.Linear(embedding_dimention,hidden_dimention)
-        self.hidden_layer_np = nn.Linear(hidden_dimention,hidden_dimention)
-        nh = hidden_dimention*2
-        self.zp_bert_to_att_layer = nn.Linear(config.hidden_size, nh)#--------------------------------
+        self.inpt_layer_np_bert = nn.Linear(hidden_dimention, hidden_dimention)
+        self.hidden_layer_np = nn.Linear(hidden_dimention, hidden_dimention)
+        nh = hidden_dimention * 2
         self.zp_representation_layer = nn.Linear(nh, nh)  # --------------------------------
 
-        self.np_representation_layer = nn.Linear(hidden_dimention,nh)
-        self.nps_representation_layer = nn.Linear(hidden_dimention,nh)
-        self.feature_representation_layer = nn.Linear(nnargs["feature_dimention"],nh)
-        self.representation_hidden_layer = nn.Linear(hidden_dimention*2,hidden_dimention*2)
-        self.output_layer = nn.Linear(hidden_dimention*2,output_dimention)
+        self.np_representation_layer = nn.Linear(hidden_dimention, nh)
+        self.nps_representation_layer = nn.Linear(hidden_dimention, nh)
+        self.feature_representation_layer = nn.Linear(nnargs["feature_dimention"], nh)
+        self.representation_hidden_layer = nn.Linear(hidden_dimention * 2, hidden_dimention * 2)
+        self.output_layer = nn.Linear(nh, output_dimention)
         self.hidden_size = hidden_dimention
         self.activate = nn.Tanh()
 
-        self.Attention_np = nn.Linear(256,1,bias=False)
-        self.Attention_zp = nn.Linear(nh,1,bias=False)
+        self.Attention_np = nn.Linear(hidden_dimention, 1, bias=False)
+        self.Attention_zp = nn.Linear(nh, 1, bias=False)
+        self.attention = BiAAttention(hidden_dimention, nh, 2)
+
+        # self.embedding_layer = nn.Embedding(embedding_size, embedding_dimention)
+        # self.embedding_layer.weight.data.copy_(torch.from_numpy(numpy.array(embedding_matrix)))
+        #
+        # self.inpt_layer_np = nn.Linear(embedding_dimention,hidden_dimention)
+        # self.hidden_layer_np = nn.Linear(hidden_dimention,hidden_dimention)
+        # nh = hidden_dimention*2
+        # self.zp_bert_to_att_layer = nn.Linear(config.hidden_size, nh)#--------------------------------
+        # self.zp_representation_layer = nn.Linear(nh, nh)  # --------------------------------
+        #
+        # self.np_representation_layer = nn.Linear(hidden_dimention,nh)
+        # self.nps_representation_layer = nn.Linear(hidden_dimention,nh)
+        # self.feature_representation_layer = nn.Linear(nnargs["feature_dimention"],nh)
+        # self.representation_hidden_layer = nn.Linear(hidden_dimention*2,hidden_dimention*2)
+        # self.output_layer = nn.Linear(hidden_dimention*2,output_dimention)
+        # self.hidden_size = hidden_dimention
+        # self.activate = nn.Tanh()
+        #
+        # self.Attention_np = nn.Linear(256,1,bias=False)
+        # self.Attention_zp = nn.Linear(nh,1,bias=False)
     def forward_zp_pre(self, word_index, hiden_layer,dropout=0.0):
         dropout_layer = nn.Dropout(dropout)
         word_embedding = self.embedding_layer(word_index)#.view(-1,word_embedding_rep_dimention)
@@ -884,9 +902,6 @@ class Network(PreTrainedBertModel):
         # zp_orig_to_tok_bert = torch.tensor(data["zp_orig_to_tok_bert"]).type(torch.cuda.LongTensor)
         #input_ids
         sequence_output, _ = self.bert(zp_sent_bert, token_type_ids, zp_sent_mask_bert,output_all_encoded_layers=False)
-
-        # for sent in zp_orig_to_tok_bert:
-        #     for i,ci in enumerate(sent):
 
         zp_representation = self.zp_bert_to_att_layer(torch.squeeze(sequence_output.narrow(1,0,1),1))
 

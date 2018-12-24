@@ -19,7 +19,7 @@ class DataGnerater():
         # self.candi_vec = numpy.load(data_path+"candi_vec.npy")
         # self.candi_vec_mask = numpy.load(data_path+"candi_vec_mask.npy")
         self.candi_vec_bert = numpy.load(data_path + "candi_vec_bert.npy")
-        self.candi_vec_mask_bert = numpy.load(data_path + "candi_vec_mask_bert.npy")
+        # self.candi_vec_mask_bert = numpy.load(data_path + "candi_vec_mask_bert.npy")
         self.ifl_vec = numpy.load(data_path+"ifl_vec.npy")
         self.zp_sent_cls_output_bert = numpy.load(data_path + "zp_sent_cls_output_bert.npy")
 
@@ -46,7 +46,7 @@ class DataGnerater():
                 this_batch["result"] = numpy.array(this_result,dtype="int32")
                 this_batch["zp_sent_cls_output_bert"] = self.zp_sent_cls_output_bert[zpi_s:zpi_e]
                 this_batch["candi_bert"] = self.candi_vec_bert[ci_s:ci_e]
-                this_batch["candi_mask_bert"] = self.candi_vec_mask_bert[ci_s:ci_e]
+                # this_batch["candi_mask_bert"] = self.candi_vec_mask_bert[ci_s:ci_e]
                 this_batch["fl"] = self.ifl_vec[ci_s:ci_e]
                 this_batch["start2end"] = s2e
                 self.data_batch.append(this_batch)
@@ -76,11 +76,11 @@ class DataGnerater():
             this_batch["result"] = numpy.array(this_result,dtype="int32")
             this_batch["zp_sent_cls_output_bert"] = self.zp_sent_cls_output_bert[zpi_s:zpi_e]
             this_batch["candi_bert"] = self.candi_vec_bert[ci_s:ci_e]
-            this_batch["candi_mask_bert"] = self.candi_vec_mask_bert[ci_s:ci_e]
+            # this_batch["candi_mask_bert"] = self.candi_vec_mask_bert[ci_s:ci_e]
             this_batch["fl"] = self.ifl_vec[ci_s:ci_e]
             this_batch["start2end"] = s2e
             self.data_batch.append(this_batch)
-    def devide(self,k=0.2,shuffle=True):
+    def devide(self,k=0.2,shuffle=False):
         # random.shuffle(self.data_batch)
         if shuffle:
             random.shuffle(self.data_batch)
@@ -88,7 +88,7 @@ class DataGnerater():
         self.dev = self.data_batch[:length]
         self.train = self.data_batch[length:]
         self.data_batch = self.train
-    def generate_data(self,shuffle=True):
+    def generate_data(self,shuffle=False):
         if shuffle:
             random.shuffle(self.data_batch) 
         estimate_time = 0.0 
@@ -105,7 +105,7 @@ class DataGnerater():
             info = "Total use %.3f seconds for %d/%d -- EST:%f , Left:%f"%(end_time-start_time,done_num,total_num,EST,EST-estimate_time)
             sys.stderr.write(info+"\r")
         print(file=sys.stderr)
-    def generate_dev_data(self,shuffle=True):
+    def generate_dev_data(self,shuffle=False):
         if shuffle:
             random.shuffle(self.dev) 
         estimate_time = 0.0 
