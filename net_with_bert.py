@@ -824,31 +824,44 @@ class Network(PreTrainedBertModel):
         #
         # self.Attention_np = nn.Linear(256,1,bias=False)
         # self.Attention_zp = nn.Linear(nh,1,bias=False)
-    def forward_zp_pre(self, word_index, hiden_layer,dropout=0.0):
+
+    def forward_zp_pre(self, word_index, hiden_layer, dropout=0.0):
         dropout_layer = nn.Dropout(dropout)
-        word_embedding = self.embedding_layer(word_index)#.view(-1,word_embedding_rep_dimention)
+        word_embedding = self.embedding_layer(word_index)  # .view(-1,word_embedding_rep_dimention)
         word_embedding = dropout_layer(word_embedding)
         this_hidden = self.inpt_layer_zp_pre(word_embedding) + self.hidden_layer_zp_pre(hiden_layer)
         this_hidden = self.activate(this_hidden)
         this_hidden = dropout_layer(this_hidden)
         return this_hidden
-    def forward_zp_post(self, word_index, hiden_layer,dropout=0.0):
+
+    def forward_zp_post(self, word_index, hiden_layer, dropout=0.0):
         dropout_layer = nn.Dropout(dropout)
-        word_embedding = self.embedding_layer(word_index)#.view(-1,word_embedding_rep_dimention)
+        word_embedding = self.embedding_layer(word_index)  # .view(-1,word_embedding_rep_dimention)
         this_hidden = self.inpt_layer_zp_post(word_embedding) + self.hidden_layer_zp_post(hiden_layer)
         this_hidden = self.activate(this_hidden)
         this_hidden = dropout_layer(this_hidden)
         return this_hidden
-    def forward_np(self, word_index, hiden_layer,dropout=0.0):
+
+    def forward_np(self, word_index, hiden_layer, dropout=0.0):
         dropout_layer = nn.Dropout(dropout)
         word_embedding = self.embedding_layer(word_index)
         this_hidden = self.inpt_layer_np(word_embedding) + self.hidden_layer_np(hiden_layer)
         this_hidden = self.activate(this_hidden)
         this_hidden = dropout_layer(this_hidden)
         return this_hidden
-    def generate_score(self,zp_pre,zp_post,np,feature,dropout=0.0):
+
+    def forward_np_bert(self, bert_out, hiden_layer, dropout=0.0):
         dropout_layer = nn.Dropout(dropout)
-        x = self.zp_pre_representation_layer(zp_pre) + self.zp_post_representation_layer(zp_post) + self.np_representation_layer(np)\
+        # word_embedding = self.embedding_layer(word_index)
+        this_hidden = self.inpt_layer_np_bert(bert_out) + self.hidden_layer_np(hiden_layer)
+        this_hidden = self.activate(this_hidden)
+        this_hidden = dropout_layer(this_hidden)
+        return this_hidden
+
+    def generate_score(self, zp_pre, zp_post, np, feature, dropout=0.0):
+        dropout_layer = nn.Dropout(dropout)
+        x = self.zp_pre_representation_layer(zp_pre) + self.zp_post_representation_layer(
+            zp_post) + self.np_representation_layer(np) \
             + self.feature_representation_layer(feature)
         x = self.activate(x)
         x = dropout_layer(x)
@@ -857,10 +870,11 @@ class Network(PreTrainedBertModel):
         x = dropout_layer(x)
         x = self.output_layer(x)
         xs = F.softmax(x)
-        return x,xs
-    def generate_score_bert(self,zp,np,feature,dropout=0.0):
+        return x, xs
+
+    def generate_score_bert(self, zp, np, feature, dropout=0.0):
         dropout_layer = nn.Dropout(dropout)
-        x = self.zp_representation_layer(zp) + self.np_representation_layer(np)\
+        x = self.zp_representation_layer(zp) + self.np_representation_layer(np) \
             + self.feature_representation_layer(feature)
         x = self.activate(x)
         x = dropout_layer(x)
@@ -868,13 +882,24 @@ class Network(PreTrainedBertModel):
         x = self.activate(x)
         x = dropout_layer(x)
         x = self.output_layer(x)
-        xs = F.softmax(x,dim=0)
-        return x,xs
-    def initHidden(self,batch=1):
+        xs = F.softmax(x, dim=0)
+        return x, xs
+
+    def generate_score_bert_biaffine(self, zp, np, feature):
+        x = self.zp_representation_layer(zp) + self.feature_representation_layer(feature)
+        x = self.activate(x)
+        x = self.attention(np.unsqueeze(1), x.unsqueeze(1)).squeeze(dim=2).squeeze(
+            dim=2)  # [batch, length_decoder, input_size]
+        xs = F.softmax(x, dim=1)
+        return x, xs
+
+    def initHidden(self, batch=1):
         return torch.tensor(numpy.zeros((batch, self.hidden_size))).type(torch.cuda.FloatTensor)
-    def get_attention_pre(self,inpt):
+
+    def get_attention_pre(self, inpt):
         return self.selfAttentionB_pre(self.activate(self.selfAttentionA_pre(inpt)))
-    def get_attention_post(self,inpt):
+
+    def get_attention_post(self, inpt):
         return self.selfAttentionB_post(self.activate(self.selfAttentionA_post(inpt)))
     def forward(self,data,dropout=0.0,  attention_mask=None, masked_lm_labels=None):
         token_type_ids = None#----------

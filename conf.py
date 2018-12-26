@@ -66,7 +66,7 @@ parser.add_argument("--learning_rate",
                     type=float,
                     help="The initial learning rate for Adam.")
 parser.add_argument("--num_train_epochs",
-                    default=50,
+                    default=100,
                     type=int,
                     help="Total number of training epochs to perform.")
 parser.add_argument("--warmup_proportion",

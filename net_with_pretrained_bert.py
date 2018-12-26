@@ -783,9 +783,6 @@ class BertForMaskedLM(PreTrainedBertModel):
 class Network(nn.Module):
     def __init__(self, hidden_dimention, output_dimention):
         super(Network, self).__init__()
-        # self.bert = BertModel(config)
-        # self.cls = BertOnlyMLMHead(config, self.bert.embeddings.word_embeddings.weight)
-        # self.apply(self.init_bert_weights)
 
         self.inpt_layer_np_bert = nn.Linear(hidden_dimention, hidden_dimention)
         self.hidden_layer_np = nn.Linear(hidden_dimention,hidden_dimention)
